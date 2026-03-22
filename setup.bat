@@ -35,7 +35,7 @@ if %errorlevel% neq 0 (
     echo Tesseract not found. Downloading installer...
     curl -L -o tesseract_installer.exe "https://github.com/UB-Mannheim/tesseract/releases/download/v5.4.0.20240606/tesseract-ocr-w64-setup-5.4.0.20240606.exe"
     echo Installing Tesseract silently (admin required)...
-    tesseract_installer.exe /S /D=C:\Program Files\Tesseract-OCR
+    tesseract_installer.exe /S "/D=C:\Program Files\Tesseract-OCR"
     del tesseract_installer.exe
     setx PATH "%PATH%;C:\Program Files\Tesseract-OCR" >nul 2>&1
     echo [OK] Tesseract installed. You may need to restart your PC if OCR fails.
