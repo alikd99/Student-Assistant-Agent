@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +53,23 @@ MAX_TOKENS_FLASHCARDS = 2048
 MAX_TOKENS_EXAM = 2048
 
 
+# Regex matching CJK, Cyrillic, and other scripts that should never appear in Arabic/English text
+_STRAY_CHARS = re.compile(
+    "[\u4E00-\u9FFF"       # CJK Unified Ideographs (Chinese)
+    "\u3040-\u309F"         # Hiragana (Japanese)
+    "\u30A0-\u30FF"         # Katakana (Japanese)
+    "\u0400-\u04FF"         # Cyrillic (Russian etc.)
+    "\u3400-\u4DBF"         # CJK Extension A
+    "\uF900-\uFAFF"         # CJK Compatibility Ideographs
+    "]+"
+)
+
+
+def _clean_response(text: str) -> str:
+    """Remove stray CJK/Cyrillic characters that the model sometimes injects."""
+    return _STRAY_CHARS.sub("", text)
+
+
 def _chunks_to_context(chunks: list[RetrievedChunk]) -> str:
     parts = []
     for i, c in enumerate(chunks, start=1):
@@ -71,7 +89,7 @@ def _chat(system: str, user: str, max_tokens: int) -> str:
             {"role": "user", "content": user},
         ],
     )
-    return response.choices[0].message.content
+    return _clean_response(response.choices[0].message.content)
 
 
 # ---------------------------------------------------------------------------
@@ -86,13 +104,26 @@ def answer_question(question: str, chunks: list[RetrievedChunk]) -> dict[str, An
         }
 
     context = _chunks_to_context(chunks)
+
+    # Detect if the question is in Arabic to enforce language matching
+    _has_arabic = any("\u0600" <= ch <= "\u06FF" for ch in question)
+    if _has_arabic:
+        lang_rule = (
+            "CRITICAL: The student wrote in Arabic. You MUST reply ENTIRELY in Arabic. "
+            "Do NOT use English at all in your response."
+        )
+    else:
+        lang_rule = (
+            "CRITICAL: Reply in the SAME language the student used in their question."
+        )
+
     system = (
         "You are an intelligent academic assistant. You have chunks from a study document and a student's question.\n"
         "Rules:\n"
-        "1. If the answer is in the provided chunks, answer directly from them.\n"
-        "2. If the question is about a well-known academic concept related to the document's topic, answer from your knowledge and mention it briefly.\n"
-        "3. Only if the question is completely unrelated to the document or its topic, say so.\n"
-        "4. Always reply in the same language the question was written in.\n"
+        f"1. {lang_rule}\n"
+        "2. If the answer is in the provided chunks, answer directly from them.\n"
+        "3. If the question is about a well-known academic concept related to the document's topic, answer from your knowledge and mention it briefly.\n"
+        "4. Only if the question is completely unrelated to the document or its topic, say so.\n"
         "5. Be helpful, clear, and detailed."
     )
     user = f"--- Document Chunks ---\n{context}\n\n--- Student Question ---\n{question}"

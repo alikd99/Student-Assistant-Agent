@@ -1,11 +1,11 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
-title Student Assistant
+title مساعد الطالب الذكي
 
 echo.
 echo ============================================================
-echo        Student Assistant - Starting...
+echo        مساعد الطالب الذكي - Starting...
 echo ============================================================
 echo.
 

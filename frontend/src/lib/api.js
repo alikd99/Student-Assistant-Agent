@@ -29,5 +29,3 @@ export const askQuestion          = (question, docId) => req('POST', '/ask',    
 export const summarize            = (docId, language) => req('POST', '/summarize',       { doc_id: docId, language })
 export const generateFlashcards   = (docId)           => req('POST', '/flashcards',      { doc_id: docId })
 export const generateExamQuestions= (docId)           => req('POST', '/exam-questions',  { doc_id: docId })
-export const fetchHistory         = (docId)           => req('GET',  `/history/${docId}`)
-export const clearHistory         = (docId)           => req('DELETE', `/history/${docId}`)

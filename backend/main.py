@@ -23,7 +23,6 @@ from typing import Any
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from history import init_db, save_message, load_history, clear_history
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -40,10 +39,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 app = FastAPI(title="مساعد الطالب الذكي", version="0.1.0")
-
-@app.on_event("startup")
-def startup():
-    init_db()
 
 app.add_middleware(
     CORSMiddleware,
@@ -145,26 +140,7 @@ def ask_question(req: AskRequest) -> dict[str, Any]:
     from agent import answer_question
 
     chunks = retrieve(query=req.question, top_k=req.top_k, doc_id=req.doc_id)
-    result = answer_question(question=req.question, chunks=chunks)
-
-    if req.doc_id:
-        save_message(req.doc_id, "user", req.question)
-        save_message(req.doc_id, "ai", result.get("answer", ""), sources=result.get("sources"))
-
-    return result
-
-
-@app.get("/history/{doc_id}")
-def get_history(doc_id: str) -> dict[str, Any]:
-    """Return the saved chat history for a document."""
-    return {"messages": load_history(doc_id)}
-
-
-@app.delete("/history/{doc_id}")
-def delete_history(doc_id: str) -> dict[str, Any]:
-    """Clear the chat history for a document."""
-    clear_history(doc_id)
-    return {"status": "ok"}
+    return answer_question(question=req.question, chunks=chunks)
 
 
 @app.post("/summarize")

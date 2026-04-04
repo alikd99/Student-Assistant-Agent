@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, forwardRef } from 'react'
-import { askQuestion, fetchHistory, clearHistory } from '../../lib/api'
+import { askQuestion } from '../../lib/api'
 
 const SUGGESTIONS = [
   'ما هي الأفكار الرئيسية في هذا الملف؟',
@@ -8,11 +8,8 @@ const SUGGESTIONS = [
   'اشرح لي أصعب جزء في هذا الملف',
 ]
 
-function Bubble({ role, text, sources, createdAt }) {
+function Bubble({ role, text, sources }) {
   const isUser = role === 'user'
-  const timeLabel = createdAt
-    ? new Date(createdAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })
-    : null
   return (
     <div style={{ padding: '20px 40px', background: isUser ? 'transparent' : '#2a2a2a', borderBottom: '1px solid #2f2f2f', direction: 'rtl' }}>
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
@@ -20,10 +17,7 @@ function Bubble({ role, text, sources, createdAt }) {
           {isUser ? 'أ' : '🤖'}
         </div>
         <div style={{ flex: 1, paddingTop: 4 }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: '#8e8ea0', marginBottom: 8 }}>
-            {isUser ? 'أنت' : 'المساعد'}
-            {timeLabel && <span style={{ fontWeight: 400, marginRight: 10, fontSize: 12 }}>{timeLabel}</span>}
-          </p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#8e8ea0', marginBottom: 8 }}>{isUser ? 'أنت' : 'المساعد'}</p>
           <div style={{ fontSize: 16, lineHeight: 1.85, color: '#ececec', whiteSpace: 'pre-wrap' }}>{text}</div>
           {sources?.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
@@ -46,22 +40,6 @@ export default function QATab({ docId, noDoc }) {
   const [loading, setLoading]   = useState(false)
   const textareaRef = useRef(null)
   const bottomRef   = useRef(null)
-
-  // Load saved history whenever the selected document changes
-  useEffect(() => {
-    if (!docId) { setMessages([]); return }
-    fetchHistory(docId)
-      .then(data => {
-        const loaded = data.messages.map(m => ({
-          role: m.role,
-          text: m.content,
-          sources: m.sources,
-          createdAt: m.created_at,
-        }))
-        setMessages(loaded)
-      })
-      .catch(() => setMessages([]))
-  }, [docId])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, loading])
 
@@ -124,7 +102,7 @@ export default function QATab({ docId, noDoc }) {
           </div>
         ) : (
           <>
-            {messages.map((m, i) => <Bubble key={i} role={m.role} text={m.text} sources={m.sources} createdAt={m.createdAt} />)}
+            {messages.map((m, i) => <Bubble key={i} role={m.role} text={m.text} sources={m.sources} />)}
             {loading && (
               <div style={{ padding: '20px 40px', background: '#2a2a2a', direction: 'rtl' }}>
                 <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
@@ -144,7 +122,7 @@ export default function QATab({ docId, noDoc }) {
 
       {!isEmpty && (
         <div style={{ borderTop: '1px solid #2f2f2f', padding: '16px 40px 20px', background: '#212121', flexShrink: 0 }}>
-          <InputBar ref={textareaRef} value={input} onChange={setInput} onSend={() => send()} loading={loading} disabled={!docId} onClear={() => { clearHistory(docId).catch(() => {}); setMessages([]) }} />
+          <InputBar ref={textareaRef} value={input} onChange={setInput} onSend={() => send()} loading={loading} disabled={!docId} onClear={() => setMessages([])} />
         </div>
       )}
 
